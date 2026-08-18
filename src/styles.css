@@ -1,0 +1,1063 @@
+/*
+ * Half-Life 2 / Source VGUI dialog chrome, lifted 1:1 from reteren/Reshot
+ * (src/reshot-tauri/src/styles.css, itself ported from
+ * github.com/arlagonix/half-life-screen). Every variable and rule down to
+ * "==== Colour palette ====" is verbatim; the accent stays reshot's teal.
+ * Everything after that section is new, built strictly from the same bevel
+ * vocabulary (raised = light top-left / dark bottom-right, inset = the
+ * opposite) so the app's own screens - drop zone, gradient list, editor -
+ * read as more of the same dialog rather than a different program.
+ */
+
+:root {
+  --bg: rgba(40, 40, 40, 0.78);
+  --bg-dark: #1a1a1a;
+  --text: white;
+  --accent: #3c9898;
+  --accent-dim: #2b6f6f;
+  --border-dark: #434343;
+  --border-light: #bbbaba;
+
+  --tab-light: #c0bfbf;
+  --tab-dark: #454543;
+
+  --input-bg: #5a5a5a;
+  --input-dark: #343434;
+  --input-light: #b7b7b7;
+
+  --btn-light: #bbbbbb;
+  --btn-dark: #454545;
+  --btn-bg: #7b7b7b;
+
+  --check-bg: #555555;
+  --check-dark: #424343;
+  --check-light: #bababa;
+
+  font-synthesis: none;
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: none;
+}
+
+::selection {
+  background-color: var(--accent);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  font-family: "Roboto", sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 125%;
+  color: var(--text);
+}
+
+/* ==== App shell (the window itself, HL2's Modal generalised) ==== */
+
+.appShell {
+  height: 100%;
+  padding: 14px;
+  background-color: var(--bg);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.titlebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: none;
+}
+
+.header {
+  font-family: "Roboto", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: move;
+  user-select: none;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header .accentDot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+}
+
+.titleButtons {
+  display: flex;
+  gap: 2px;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease-in-out;
+  line-height: 0;
+  width: 26px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.iconButton:hover {
+  background: rgb(0 0 0 / 0.15);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border-dark);
+  border-bottom: 1px solid var(--border-light);
+  flex: none;
+}
+
+/* ==== Inputs (verbatim) ==== */
+
+.numberInput,
+.textInput {
+  height: 24px;
+  background-color: var(--input-bg);
+  color: var(--text);
+  padding: 4px;
+  font-family: "Roboto", sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+
+  outline: none;
+}
+
+.numberInput {
+  max-width: 50px;
+}
+
+.hexInput {
+  max-width: 66px;
+}
+
+.textInput {
+  min-width: 0;
+}
+
+.textInput:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* ==== Checkbox (verbatim) ==== */
+
+.checkboxWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkboxWrapper input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  height: 12px;
+  width: 12px;
+  flex: none;
+  position: relative;
+  background-color: var(--check-bg);
+
+  border-left: 1px solid var(--check-dark);
+  border-top: 1px solid var(--check-dark);
+  border-right: 1px solid var(--check-light);
+  border-bottom: 1px solid var(--check-light);
+}
+
+.checkboxWrapper.disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.checkboxWrapper input:checked ~ .checkmark {
+  background: var(--check-bg)
+    url("data:image/svg+xml;utf8,<svg width='8' height='7' viewBox='0 0 8 7' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M1 2.5L3 5L7 1' stroke='white' stroke-width='2'/></svg>");
+  background-size: 80% 80%;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+/* ==== Button (verbatim) ==== */
+
+.button {
+  border: 1px solid black;
+  border-left-color: var(--btn-light);
+  border-top-color: var(--btn-light);
+  border-right-color: var(--btn-dark);
+  border-bottom-color: var(--btn-dark);
+
+  background-color: var(--btn-bg);
+  padding: 0 4px;
+  user-select: none;
+
+  min-height: 24px;
+  min-width: 70px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: "Roboto", sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  color: var(--text);
+
+  cursor: pointer;
+}
+
+.button:active:not(:disabled) {
+  border-left-color: var(--btn-dark);
+  border-top-color: var(--btn-dark);
+  border-right-color: var(--btn-light);
+  border-bottom-color: var(--btn-light);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  color: black;
+}
+
+.button.compact {
+  min-width: 0;
+  padding: 0 8px;
+  flex: none;
+}
+
+/* The one button that has to read as *the* action: same bevel, teal face. */
+.button.primary {
+  background-color: var(--accent);
+  border-left-color: #6dbcbc;
+  border-top-color: #6dbcbc;
+  border-right-color: #1f4f4f;
+  border-bottom-color: #1f4f4f;
+  font-weight: 700;
+  min-width: 120px;
+}
+
+.button.primary:active:not(:disabled) {
+  border-left-color: #1f4f4f;
+  border-top-color: #1f4f4f;
+  border-right-color: #6dbcbc;
+  border-bottom-color: #6dbcbc;
+}
+
+.button.primary:disabled {
+  background-color: var(--btn-bg);
+  border-left-color: var(--btn-light);
+  border-top-color: var(--btn-light);
+  border-right-color: var(--btn-dark);
+  border-bottom-color: var(--btn-dark);
+}
+
+.button.danger:not(:disabled):hover {
+  background-color: #8a3c3c;
+}
+
+/* ==== Select (verbatim) ==== */
+
+.select {
+  position: relative;
+  user-select: none;
+  min-width: 0;
+}
+
+.selectValue {
+  height: 24px;
+  padding: 0 20px 0 4px;
+  display: flex;
+  align-items: center;
+
+  background-color: var(--btn-bg);
+  border: 1px solid black;
+  border-left-color: var(--btn-light);
+  border-top-color: var(--btn-light);
+  border-right-color: var(--btn-dark);
+  border-bottom-color: var(--btn-dark);
+
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--text);
+  cursor: pointer;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.selectValue::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  margin-top: -2px;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid white;
+}
+
+.selectList {
+  display: none;
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  top: 100%;
+  max-height: 180px;
+  overflow-y: auto;
+
+  background-color: var(--input-bg);
+  border: 1px solid black;
+  border-left-color: var(--input-dark);
+  border-top-color: var(--input-dark);
+  border-right-color: var(--input-light);
+  border-bottom-color: var(--input-light);
+}
+
+.select.open .selectList {
+  display: block;
+}
+
+.selectOption {
+  padding: 3px 4px;
+  font-size: 12px;
+  font-weight: 300;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectOption:hover,
+.selectOption.selected {
+  background-color: var(--accent);
+}
+
+/* ==== Slider (verbatim) ==== */
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-grow: 1;
+  min-width: 0;
+  height: 12px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background-color: var(--input-bg);
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 18px;
+  margin-top: -7px;
+
+  background-color: var(--btn-bg);
+  border: 1px solid black;
+  border-left-color: var(--btn-light);
+  border-top-color: var(--btn-light);
+  border-right-color: var(--btn-dark);
+  border-bottom-color: var(--btn-dark);
+}
+
+.slider:active::-webkit-slider-thumb {
+  border-left-color: var(--btn-dark);
+  border-top-color: var(--btn-dark);
+  border-right-color: var(--btn-light);
+  border-bottom-color: var(--btn-light);
+}
+
+/* Source-style scrollbar: an inset trough with a raised thumb. */
+.scrollY {
+  overflow-y: auto;
+}
+
+.scrollY::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollY::-webkit-scrollbar-track {
+  background-color: var(--input-bg);
+  border-top: 1px solid var(--input-dark);
+  border-left: 1px solid var(--input-dark);
+}
+
+.scrollY::-webkit-scrollbar-thumb {
+  background-color: var(--btn-bg);
+  border: 1px solid;
+  border-left-color: var(--btn-light);
+  border-top-color: var(--btn-light);
+  border-right-color: var(--btn-dark);
+  border-bottom-color: var(--btn-dark);
+}
+
+.scrollY::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent);
+}
+
+/* ==== Colour palette / swatch (verbatim) ==== */
+
+.palette {
+  display: none;
+  position: absolute;
+  z-index: 20;
+
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  padding: 4px;
+
+  background-color: var(--input-bg);
+  border: 1px solid black;
+  border-left-color: var(--input-dark);
+  border-top-color: var(--input-dark);
+  border-right-color: var(--input-light);
+  border-bottom-color: var(--input-light);
+}
+
+.palette.open {
+  display: grid;
+}
+
+.palette.inline {
+  display: grid;
+  position: static;
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.swatchBtn {
+  width: 20px;
+  height: 18px;
+  cursor: pointer;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+}
+
+.swatchBtn:hover {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.swatchBtn.selected {
+  outline: 1px solid white;
+  outline-offset: 1px;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  cursor: pointer;
+}
+
+.pathRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status {
+  font-size: 11px;
+  opacity: 0.75;
+  min-height: 14px;
+  flex-grow: 1;
+  text-align: left;
+}
+
+/* ==================================================================== */
+/* ==== Everything below is Regradient's own screens, same bevels. ==== */
+/* ==================================================================== */
+
+.mainGrid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.leftColumn {
+  flex: 1.1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rightColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panelLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  flex: none;
+}
+
+/* ---- Drop zone ---- */
+
+.dropzone {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background-color: var(--input-bg);
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.dropzone.dragOver {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.dropzone .hint {
+  opacity: 0.6;
+  font-size: 11px;
+  max-width: 260px;
+}
+
+.dropzone .hintKey {
+  padding: 1px 5px;
+  background-color: var(--btn-bg);
+  border: 1px solid;
+  border-left-color: var(--btn-light);
+  border-top-color: var(--btn-light);
+  border-right-color: var(--btn-dark);
+  border-bottom-color: var(--btn-dark);
+  font-size: 10px;
+}
+
+.dropzone img.previewImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.dropzone .previewMeta {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 10px;
+  padding: 2px 6px;
+  background: rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+
+.dropzone .clearImage {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* ---- Export bar ---- */
+
+.exportBar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exportFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exportFooter .status {
+  order: -1;
+}
+
+/* ---- Gradient list ---- */
+
+.searchRow {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.searchRow .textInput {
+  flex: 1;
+}
+
+.gradientListHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+}
+
+.gradientListHead .count {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.gradientList {
+  flex: 1;
+  min-height: 0;
+  background-color: var(--input-bg);
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gradientRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.gradientRow:hover {
+  background-color: rgb(255 255 255 / 0.06);
+}
+
+.gradientRow.selected {
+  background-color: rgb(60 152 152 / 0.28);
+}
+
+.gradientNum {
+  width: 20px;
+  flex: none;
+  text-align: right;
+  font-size: 10px;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.gradientSwatch {
+  width: 64px;
+  height: 20px;
+  flex: none;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  background-size: cover;
+  image-rendering: pixelated;
+}
+
+.gradientName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.gradientTag {
+  font-size: 9px;
+  opacity: 0.5;
+  text-transform: uppercase;
+  flex: none;
+}
+
+.gradientRowActions {
+  display: none;
+  gap: 2px;
+  flex: none;
+}
+
+.gradientRow:hover .gradientRowActions {
+  display: flex;
+}
+
+.rowIconButton {
+  background: none;
+  border: none;
+  color: var(--text);
+  opacity: 0.6;
+  cursor: pointer;
+  font-size: 12px;
+  width: 18px;
+  height: 18px;
+}
+
+.rowIconButton:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.newGradientRow {
+  flex: none;
+}
+
+/* ---- Gradient editor overlay ---- */
+
+.editorOverlay {
+  display: none;
+  position: absolute;
+  inset: 14px;
+  z-index: 50;
+  background-color: rgba(30, 30, 30, 0.92);
+  backdrop-filter: blur(6px);
+  border-radius: 6px;
+  border: 1px solid var(--border-dark);
+}
+
+.editorOverlay.open {
+  display: flex;
+  flex-direction: column;
+}
+
+.editorBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+}
+
+.editorLeft {
+  flex: 1.3;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editorRight {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editorNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.editorNameRow .textInput {
+  flex: 1;
+}
+
+/* Gradient bar: the Photoshop strip, stop triangles above, midpoint diamonds
+   below, opacity stops on a thin lane on top. */
+.gradientBarWrap {
+  padding: 22px 8px 26px;
+  position: relative;
+}
+
+.opacityLane {
+  position: relative;
+  height: 14px;
+  margin-bottom: 2px;
+  background-color: var(--input-dark);
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+}
+
+.gradientBar {
+  position: relative;
+  height: 36px;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  cursor: copy;
+  /* checkerboard behind a partially-transparent gradient */
+  background-image:
+    linear-gradient(45deg, #666 25%, transparent 25%),
+    linear-gradient(-45deg, #666 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #666 75%),
+    linear-gradient(-45deg, transparent 75%, #666 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  background-color: #999;
+}
+
+.gradientBar canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stopHandle,
+.opacityHandle {
+  position: absolute;
+  width: 12px;
+  height: 14px;
+  transform: translate(-50%, 0);
+  cursor: grab;
+}
+
+.stopHandle {
+  top: -16px;
+}
+
+.stopHandle::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--btn-bg);
+  border-left: 1px solid var(--btn-light);
+  border-top: 1px solid var(--btn-light);
+  border-right: 1px solid var(--btn-dark);
+  border-bottom: 1px solid var(--btn-dark);
+  transform: rotate(45deg);
+}
+
+.stopHandle .stopColor {
+  position: absolute;
+  left: 1px;
+  top: -11px;
+  width: 10px;
+  height: 10px;
+  border: 1px solid black;
+}
+
+.stopHandle.active::before {
+  border-left-color: var(--accent);
+  border-top-color: var(--accent);
+}
+
+.opacityHandle {
+  top: -14px;
+  height: 12px;
+}
+
+.opacityHandle::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--input-bg);
+  border-left: 1px solid var(--input-light);
+  border-top: 1px solid var(--input-light);
+  border-right: 1px solid var(--input-dark);
+  border-bottom: 1px solid var(--input-dark);
+  transform: rotate(45deg);
+}
+
+.opacityHandle.active::before {
+  border-left-color: var(--accent);
+  border-top-color: var(--accent);
+}
+
+.midpointHandle {
+  position: absolute;
+  top: 38px;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, 0) rotate(45deg);
+  background-color: var(--btn-bg);
+  border-left: 1px solid var(--btn-light);
+  border-top: 1px solid var(--btn-light);
+  border-right: 1px solid var(--btn-dark);
+  border-bottom: 1px solid var(--btn-dark);
+  cursor: ew-resize;
+  opacity: 0.85;
+}
+
+.editorHint {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.stopFieldsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stopFieldsRow .label {
+  width: 58px;
+  flex: none;
+  opacity: 0.8;
+}
+
+/* ---- Colour picker: HSL square + hue rail + hex/rgb + palette ---- */
+
+.colorPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.svSquareWrap {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  cursor: crosshair;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+}
+
+.svSquareWrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.svCursor {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid white;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.hueRail {
+  position: relative;
+  height: 14px;
+  cursor: pointer;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 17%,
+    #0f0 33%,
+    #0ff 50%,
+    #00f 67%,
+    #f0f 83%,
+    #f00 100%
+  );
+}
+
+.hueCursor {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 4px;
+  background-color: white;
+  border: 1px solid black;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.hexRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rgbRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rgbRow .numberInput {
+  max-width: 44px;
+}
+
+.rgbRow .rgbLabel {
+  opacity: 0.7;
+  width: 10px;
+}
+
+.editorFooter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--tab-dark);
+}
+
+.editorFooter .status {
+  order: -1;
+}

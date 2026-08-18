@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Regradient</title>
+  </head>
+  <body>
+    <section class="appShell">
+      <div class="titlebar" data-tauri-drag-region>
+        <h1 class="header" data-tauri-drag-region>
+          <span class="accentDot"></span>
+          Regradient
+        </h1>
+        <div class="titleButtons">
+          <button class="iconButton" id="minimizeBtn" title="Свернуть">&#x2013;</button>
+          <button class="iconButton" id="closeBtn" title="Закрыть">
+            <img src="/close.svg" width="14" height="14" alt="" />
+          </button>
+        </div>
+      </div>
+
+      <div class="mainGrid">
+        <div class="leftColumn">
+          <p class="panelLabel">Фото</p>
+          <div class="dropzone" id="dropzone" tabindex="0">
+            <div class="dropzoneEmpty" id="dropzoneEmpty">
+              <p>Перетащи фото сюда</p>
+              <p class="hint">
+                или нажми <span class="hintKey">Ctrl</span>+<span class="hintKey">V</span>, чтобы вставить из
+                буфера, или выбери файл на диске
+              </p>
+              <button class="button compact" id="browseImageBtn">Выбрать файл…</button>
+            </div>
+            <img class="previewImg" id="previewImg" alt="" style="display: none" />
+            <span class="previewMeta" id="previewMeta" style="display: none"></span>
+            <button class="button compact clearImage" id="clearImageBtn" style="display: none" title="Убрать фото">
+              ✕
+            </button>
+          </div>
+
+          <div class="exportBar">
+            <p class="panelLabel">Экспорт</p>
+            <div class="pathRow">
+              <input type="text" class="textInput" id="exportPath" placeholder="Папка для экспорта…" />
+              <button class="button compact" id="browsePathBtn">…</button>
+            </div>
+
+            <div class="checkRow">
+              <label class="checkboxWrapper">
+                <input type="checkbox" id="wrapInGradientedImages" checked />
+                <span class="checkmark"></span>
+                <span>Создавать папку «Gradiented Images»</span>
+              </label>
+              <label class="checkboxWrapper">
+                <input type="checkbox" id="perGradientFolders" />
+                <span class="checkmark"></span>
+                <span>Отдельная папка на каждый градиент</span>
+              </label>
+              <label class="checkboxWrapper">
+                <input type="checkbox" id="exportDefault" />
+                <span class="checkmark"></span>
+                <span>Экспортировать и оригинал (_default)</span>
+              </label>
+            </div>
+
+            <div class="exportFooter">
+              <span class="status" id="exportStatus"></span>
+              <button class="button primary" id="exportBtn" disabled>Экспорт</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rightColumn">
+          <div class="gradientListHead">
+            <p class="panelLabel">Градиенты</p>
+            <span class="count" id="gradientCount"></span>
+          </div>
+          <div class="searchRow">
+            <input type="text" class="textInput" id="gradientSearch" placeholder="Поиск по названию…" />
+            <button class="button compact" id="newGradientBtn">+ Новый</button>
+          </div>
+          <div class="gradientList scrollY" id="gradientList"></div>
+        </div>
+      </div>
+
+      <!-- Gradient editor, filled in by editor.ts -->
+      <div class="editorOverlay" id="editorOverlay"></div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
