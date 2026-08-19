@@ -1,44 +1,10 @@
-from PIL import Image, ImageDraw
+from PIL import Image
 
-# Simple placeholder app icon: dark VGUI panel square with a diagonal teal->white
-# gradient bar, echoing the app's own gradient-map subject and the stolen theme's
-# accent colour. Not meant to be final branding, just a valid bundle icon.
-SIZE = 1024
-img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-draw = ImageDraw.Draw(img)
-
-bg = (26, 26, 26, 255)
-draw.rounded_rectangle([0, 0, SIZE, SIZE], radius=180, fill=bg)
-
-stops = [
-    (0.0, (60, 152, 152)),
-    (0.5, (255, 255, 255)),
-    (1.0, (60, 152, 152)),
-]
-
-
-def lerp(a, b, t):
-    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
-
-
-def color_at(t):
-    for i in range(len(stops) - 1):
-        p0, c0 = stops[i]
-        p1, c1 = stops[i + 1]
-        if p0 <= t <= p1:
-            local = 0 if p1 == p0 else (t - p0) / (p1 - p0)
-            return lerp(c0, c1, local)
-    return stops[-1][1]
-
-
-bar_top = int(SIZE * 0.40)
-bar_bottom = int(SIZE * 0.60)
-margin = int(SIZE * 0.12)
-for x in range(margin, SIZE - margin):
-    t = (x - margin) / (SIZE - 2 * margin)
-    draw.line([(x, bar_top), (x, bar_bottom)], fill=color_at(t) + (255,))
-
-img.save("icons/icon_source.png")
+# App icon generated from the user-supplied source artwork (regradient.png,
+# 512x512 RGBA). All resizing uses nearest-neighbor per the user's request -
+# no smoothing/blurring of the pixel edges at smaller sizes.
+SOURCE = "../regradient.png"
+src = Image.open(SOURCE).convert("RGBA")
 
 sizes = {
     "32x32.png": 32,
@@ -56,10 +22,38 @@ sizes = {
     "Square310x310Logo.png": 310,
     "StoreLogo.png": 50,
 }
-for name, s in sizes.items():
-    img.resize((s, s), Image.LANCZOS).save(f"icons/{name}")
 
+resized_cache = {}
+
+
+def nearest(size):
+    if size not in resized_cache:
+        if size == src.width:
+            resized_cache[size] = src
+        else:
+            resized_cache[size] = src.resize((size, size), Image.NEAREST)
+    return resized_cache[size]
+
+
+for name, s in sizes.items():
+    nearest(s).save(f"icons/{name}")
+
+src.save("icons/icon_source.png")
+
+# Build the multi-resolution .ico by embedding pre-resized nearest-neighbor
+# frames directly (via append_images) rather than letting Pillow's ICO
+# encoder re-resize from the source itself, which defaults to a smooth
+# filter and would defeat the point. Pillow's ICO writer caps every frame
+# size at the *base* image's own size (`im.size` in IcoImagePlugin._save),
+# so the base has to be the largest frame - saving on the smallest one
+# silently drops everything bigger than it.
 ico_sizes = [16, 24, 32, 48, 64, 128, 256]
-img.save("icons/icon.ico", sizes=[(s, s) for s in ico_sizes])
+frames = [nearest(s) for s in ico_sizes]
+frames[-1].save(
+    "icons/icon.ico",
+    format="ICO",
+    sizes=[(s, s) for s in ico_sizes],
+    append_images=frames[:-1],
+)
 
 print("icons written")
