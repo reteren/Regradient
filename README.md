@@ -1,120 +1,42 @@
-# gradmap — Photoshop Gradient Maps без Photoshop
+# Regradient
 
-Кидаешь фото на `.bat` — получаешь по одной картинке на каждый градиент из твоих `.grd` файлов.
-Photoshop при этом открывать не нужно.
+A small Windows desktop app that applies Photoshop-style Gradient Maps to a photo — no Photoshop required.
 
----
+Drop in a photo, pick as many gradients as you like from your collection, hit export, and get one image per gradient (`photo_gradientname.png`). Comes with a Photoshop-style gradient editor (draggable color and opacity stops, midpoint bias, HSV picker) so you can tweak the bundled presets or build your own, and it reads real Photoshop `.grd` preset files directly.
 
-## Установка (один раз)
+## Features
 
-1. **Python 3.8+** — https://www.python.org/downloads/windows/
-   При установке обязательно поставь галочку **«Add Python to PATH»**.
+- **Import a photo** by drag & drop, `Ctrl+V` paste, or a file picker.
+- **Gradient Map export**: every pixel's luminance is remapped through the gradient, exactly like Photoshop's own Gradient Map adjustment.
+- **Batch export**: select multiple gradients, get one output file per gradient in a single pass.
+- **Export layout options**: wrap everything in a `Gradiented Images` folder, put each gradient in its own subfolder, and/or export a copy of the original alongside the gradient maps.
+- **Gradient editor**: a Photoshop-style stop ramp — click to add a color stop, drag to move it, right-click to delete, a separate lane above for opacity stops, and midpoint diamonds to bias the blend toward either side.
+- **Color picker**: HSV square + hue rail, hex/RGB fields, and a base palette.
+- **Reads `.grd` files** — drop Photoshop gradient presets into the `gradients/` folder next to the app and they show up in the list automatically.
+- Edit any gradient, including the bundled `.grd` presets — editing a preset saves a new custom copy without touching the original file.
 
-2. Открой командную строку и поставь зависимости:
+## Installing
 
-   ```
-   pip install pillow numpy
-   ```
+Download the installer from [Releases](../../releases) and run it — no admin rights needed, it installs per-user. The bundled sample gradients are installed alongside the app.
 
-3. Разложи файлы так:
+## Building from source
 
-   ```
-   gradmap\
-   ├── gradmap.py
-   ├── DROP_PHOTOS_HERE.bat
-   └── gradients\
-       ├── grad1.grd
-       ├── grad2.grd
-       └── ...   (сюда все 7 твоих .grd)
-   ```
+Requires [Node.js](https://nodejs.org/) and the [Rust toolchain](https://www.rust-lang.org/tools/install) (plus the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for Windows).
 
-   Не важно, лежат ли 7 градиентов в семи файлах или все в одном `.grd` —
-   скрипт соберёт все, что найдёт.
-
----
-
-## Как пользоваться
-
-Перетащи фото (можно несколько сразу, можно целую папку) на `DROP_PHOTOS_HERE.bat`.
-
-Рядом с фото появится папка `имяфото_gradients` с результатами:
-
-```
-photo_01_Sunset_Warm.png
-photo_02_Cold_Cyan.png
-...
+```sh
+npm install
+npm run tauri dev     # run in development
+npm run tauri build   # build the NSIS installer
 ```
 
-Через командную строку то же самое:
+The installer is written to `src-tauri/target/release/bundle/nsis/`.
 
-```
-python gradmap.py photo.jpg
-python gradmap.py C:\фотки
-```
+## How it works
 
----
+- **Frontend**: vanilla TypeScript + a hand-rolled UI (`src/`) styled after Half-Life 2's Source VGUI dialogs, ported from [reteren/Reshot](https://github.com/reteren/Reshot).
+- **Backend**: Rust (`src-tauri/src/`) — a from-scratch parser for Photoshop's undocumented `.grd` binary format (`grd.rs`), the gradient LUT/interpolation math (`gradient.rs`), image loading and the gradient-map export pipeline (`imaging.rs`, `export.rs`).
+- Custom gradients you create in the editor are stored as JSON next to the `.grd` presets in `gradients/`.
 
-## Настройки
+## License
 
-Открой `gradmap.py` в блокноте, вверху есть блок `SETTINGS`:
-
-| Параметр | Что делает |
-|---|---|
-| `OUTPUT_FORMAT` | `"png"` или `"jpg"` |
-| `JPEG_QUALITY` | качество JPEG, 0–100 |
-| `REVERSE_GRADIENTS` | `True` = как галочка **Reverse** в Photoshop |
-| `LUMA` | `"photoshop"` (0.30/0.59/0.11) или `"rec709"` |
-
----
-
-## Если `.grd` не читается
-
-`.grd` — закрытый бинарный формат, и в нём есть вещи, которые в принципе не
-переносятся один в один: **noise-градиенты** (Gradient Type: Noise) вообще не
-хранят список цветовых точек, а генерируются алгоритмом. Для них скрипт напишет
-`[!] no usable gradients found`.
-
-Обходной путь, работает всегда и занимает пару минут на градиент:
-
-1. В Photoshop: **File → New**, размер **256 × 32 px**, RGB.
-2. Возьми **Gradient Tool (G)**, выбери нужный градиент, тип **Linear**.
-3. С зажатым **Shift** протяни от самого левого края до самого правого.
-4. **File → Export → Export As… → PNG**, сохрани в папку `gradients`
-   под понятным именем, например `04_Sunset.png`.
-
-Скрипт подхватывает такие полоски автоматически и использует их как таблицу
-цветов. Имя файла станет именем градиента в результатах.
-
----
-
-## Как это работает
-
-Gradient Map в Photoshop — это ремап по яркости: считается яркость пикселя
-(0–255), и это значение служит координатой вдоль градиента. Скрипт делает
-ровно то же:
-
-1. Парсит `.grd` (дескрипторы Photoshop: `Clrs` → список точек с `Clr `,
-   `Lctn` 0–4096 и `Mdpn` 0–100).
-2. Строит LUT на 256 значений, интерполируя между точками с учётом
-   midpoint-ромбиков.
-3. Считает яркость пикселей и подставляет цвета из LUT. Альфа-канал
-   сохраняется.
-
-Что **не** переносится: прозрачность внутри градиента (`Trns`-точки),
-noise-градиенты, режимы наложения слоя и dither. Если в твоих градиентах есть
-точки прозрачности — используй способ с PNG-полоской, там всё уже запечено.
-
----
-
-## Частые проблемы
-
-**Окно моргнуло и закрылось** — Python не в PATH. Переустанови Python с
-галочкой «Add Python to PATH», либо в `.bat` замени `python` на полный путь
-к `python.exe`.
-
-**`ModuleNotFoundError: No module named 'PIL'`** — выполни `pip install pillow numpy`.
-
-**Цвета чуть отличаются от Photoshop** — попробуй `LUMA = "rec709"`.
-Разница обычно в 1–3 уровня и заметна только на пипетке.
-
-**Градиент вывернут наизнанку** — `REVERSE_GRADIENTS = True`.
+MIT — see [LICENSE](LICENSE).

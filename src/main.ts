@@ -101,7 +101,7 @@ browseImageBtn.addEventListener("click", async (e) => {
   e.stopPropagation();
   const path = await open({
     multiple: false,
-    filters: [{ name: "Изображения", extensions: IMAGE_EXTENSIONS }],
+    filters: [{ name: "Images", extensions: IMAGE_EXTENSIONS }],
   });
   if (typeof path === "string") await loadFromPath(path);
 });
@@ -110,7 +110,7 @@ dropzone.addEventListener("click", async (e) => {
   if (currentImage || e.target !== dropzone) return;
   const path = await open({
     multiple: false,
-    filters: [{ name: "Изображения", extensions: IMAGE_EXTENSIONS }],
+    filters: [{ name: "Images", extensions: IMAGE_EXTENSIONS }],
   });
   if (typeof path === "string") await loadFromPath(path);
 });
@@ -233,29 +233,34 @@ function renderGradientList() {
 
     const actions = document.createElement("span");
     actions.className = "gradientRowActions";
+    // Editing a built-in .grd preset is allowed too - saving it writes a new
+    // custom copy alongside the original rather than touching the .grd file
+    // (the backend can't write that format), so only custom gradients get a
+    // delete button.
+    const editBtn = document.createElement("button");
+    editBtn.className = "rowIconButton";
+    editBtn.textContent = "✎";
+    editBtn.title = "Edit";
+    editBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void openEditor(g.id, refreshGradients, !g.editable);
+    });
+    actions.append(editBtn);
     if (g.editable) {
-      const editBtn = document.createElement("button");
-      editBtn.className = "rowIconButton";
-      editBtn.textContent = "✎";
-      editBtn.title = "Редактировать";
-      editBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        void openEditor(g.id, refreshGradients);
-      });
       const delBtn = document.createElement("button");
       delBtn.className = "rowIconButton";
       delBtn.textContent = "🗑";
-      delBtn.title = "Удалить";
+      delBtn.title = "Delete";
       delBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         void (async () => {
-          if (!confirm(`Удалить градиент «${g.name}»?`)) return;
+          if (!confirm(`Delete gradient "${g.name}"?`)) return;
           await deleteGradient(g.id);
           selected.delete(g.id);
           await refreshGradients();
         })();
       });
-      actions.append(editBtn, delBtn);
+      actions.append(delBtn);
     } else {
       const tag = document.createElement("span");
       tag.className = "gradientTag";
@@ -264,6 +269,10 @@ function renderGradientList() {
     }
 
     row.addEventListener("click", () => toggleSelection(g.id));
+    row.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      void openEditor(g.id, refreshGradients, !g.editable);
+    });
     row.append(num, checkbox, swatch, name, actions);
     gradientList.appendChild(row);
   });
@@ -310,14 +319,14 @@ exportBtn.addEventListener("click", async () => {
     exportDefault: exportDefaultCheckbox.checked,
   };
   exportBtn.disabled = true;
-  setExportStatus("Экспорт…");
+  setExportStatus("Exporting…");
   try {
     const result = await runExport(request);
     if (result.errors.length > 0) {
-      setExportStatus(`Готово: ${result.written.length}, ошибок: ${result.errors.length}`);
+      setExportStatus(`Done: ${result.written.length}, errors: ${result.errors.length}`);
       console.error(result.errors);
     } else {
-      setExportStatus(`Готово: ${result.written.length} файлов`);
+      setExportStatus(`Done: ${result.written.length} files`);
     }
   } catch (e) {
     setExportStatus(String(e));

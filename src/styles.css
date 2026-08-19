@@ -529,15 +529,17 @@ hr {
 }
 
 .leftColumn {
-  flex: 1.1;
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+/* 2.5x narrower than the original flex:1 share of the row. */
 .rightColumn {
-  flex: 1;
+  flex: none;
+  width: 190px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -685,8 +687,8 @@ hr {
 .gradientRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
+  gap: 6px;
+  padding: 4px;
   cursor: pointer;
   user-select: none;
 }
@@ -700,7 +702,7 @@ hr {
 }
 
 .gradientNum {
-  width: 20px;
+  width: 14px;
   flex: none;
   text-align: right;
   font-size: 10px;
@@ -709,7 +711,7 @@ hr {
 }
 
 .gradientSwatch {
-  width: 64px;
+  width: 36px;
   height: 20px;
   flex: none;
   border-left: 1px solid var(--input-dark);
@@ -826,13 +828,31 @@ hr {
 
 .opacityLane {
   position: relative;
-  height: 14px;
-  margin-bottom: 2px;
+  height: 20px;
+  /* Clears the color-stop diamonds, which always float 6-14px above the bar's
+     own top edge regardless of this lane's size (14px was not enough - the
+     diamonds' bevel edges were still grazing the lane, reported as points
+     "climbing onto each other"). This leaves a clearly visible dead strip
+     between the two lanes instead of a couple of borderline pixels. */
+  margin-bottom: 32px;
   background-color: var(--input-dark);
   border-left: 1px solid var(--input-dark);
   border-top: 1px solid var(--input-dark);
   border-right: 1px solid var(--input-light);
   border-bottom: 1px solid var(--input-light);
+}
+
+/* Otherwise this reads as a stray sliver, not a second lane with its own points. */
+.opacityLane::before {
+  content: "Opacity";
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .gradientBar {

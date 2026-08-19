@@ -33,7 +33,12 @@ fn default_midpoint() -> f64 {
     0.5
 }
 
+// Without rename_all, this field crosses the IPC boundary as `opacity_stops`
+// while the frontend (api.ts) reads `opacityStops` - it silently comes back
+// `undefined` on load (crashing the editor's render pass, which needs
+// `.length` on it) and silently drops to empty on save.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GradientDef {
     pub name: String,
     pub stops: Vec<ColorStop>,
@@ -378,5 +383,26 @@ mod tests {
         assert!(list_meta(&tmp).is_empty());
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// Guards the exact bug that shipped: without `rename_all = "camelCase"`
+    /// on `GradientDef`, this field crosses Tauri's IPC as `opacity_stops`
+    /// while the frontend reads `opacityStops` - it comes back `undefined`,
+    /// which crashes the editor's render pass on load and silently drops the
+    /// stops to empty on save. Asserting the wire shape directly (not just
+    /// that a Rust-to-Rust round trip works) is what actually catches that.
+    #[test]
+    fn gradient_def_serializes_opacity_stops_as_camel_case() {
+        let def = GradientDef {
+            name: "t".into(),
+            stops: vec![
+                ColorStop { pos: 0.0, color: [0, 0, 0], midpoint: 0.5 },
+                ColorStop { pos: 1.0, color: [255, 255, 255], midpoint: 0.5 },
+            ],
+            opacity_stops: vec![OpacityStop { pos: 0.5, opacity: 0.5, midpoint: 0.5 }],
+        };
+        let value = serde_json::to_value(&def).unwrap();
+        assert!(value.get("opacityStops").is_some(), "expected camelCase \"opacityStops\" key, got: {value}");
+        assert!(value.get("opacity_stops").is_none(), "snake_case key leaked onto the wire: {value}");
     }
 }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,8 +13,8 @@
           Regradient
         </h1>
         <div class="titleButtons">
-          <button class="iconButton" id="minimizeBtn" title="Свернуть">&#x2013;</button>
-          <button class="iconButton" id="closeBtn" title="Закрыть">
+          <button class="iconButton" id="minimizeBtn" title="Minimize">&#x2013;</button>
+          <button class="iconButton" id="closeBtn" title="Close">
             <img src="/close.svg" width="14" height="14" alt="" />
           </button>
         </div>
@@ -22,63 +22,63 @@
 
       <div class="mainGrid">
         <div class="leftColumn">
-          <p class="panelLabel">Фото</p>
+          <p class="panelLabel">Photo</p>
           <div class="dropzone" id="dropzone" tabindex="0">
             <div class="dropzoneEmpty" id="dropzoneEmpty">
-              <p>Перетащи фото сюда</p>
+              <p>Drop a photo here</p>
               <p class="hint">
-                или нажми <span class="hintKey">Ctrl</span>+<span class="hintKey">V</span>, чтобы вставить из
-                буфера, или выбери файл на диске
+                or press <span class="hintKey">Ctrl</span>+<span class="hintKey">V</span> to paste from the
+                clipboard, or pick a file from disk
               </p>
-              <button class="button compact" id="browseImageBtn">Выбрать файл…</button>
+              <button class="button compact" id="browseImageBtn">Choose file…</button>
             </div>
             <img class="previewImg" id="previewImg" alt="" style="display: none" />
             <span class="previewMeta" id="previewMeta" style="display: none"></span>
-            <button class="button compact clearImage" id="clearImageBtn" style="display: none" title="Убрать фото">
+            <button class="button compact clearImage" id="clearImageBtn" style="display: none" title="Remove photo">
               ✕
             </button>
           </div>
 
           <div class="exportBar">
-            <p class="panelLabel">Экспорт</p>
+            <p class="panelLabel">Export</p>
             <div class="pathRow">
-              <input type="text" class="textInput" id="exportPath" placeholder="Папка для экспорта…" />
+              <input type="text" class="textInput" id="exportPath" placeholder="Export folder…" />
               <button class="button compact" id="browsePathBtn">…</button>
             </div>
 
             <div class="checkRow">
               <label class="checkboxWrapper">
-                <input type="checkbox" id="wrapInGradientedImages" checked />
+                <input type="checkbox" id="wrapInGradientedImages" />
                 <span class="checkmark"></span>
-                <span>Создавать папку «Gradiented Images»</span>
+                <span>Create a "Gradiented Images" folder</span>
               </label>
               <label class="checkboxWrapper">
                 <input type="checkbox" id="perGradientFolders" />
                 <span class="checkmark"></span>
-                <span>Отдельная папка на каждый градиент</span>
+                <span>Separate folder per gradient</span>
               </label>
               <label class="checkboxWrapper">
                 <input type="checkbox" id="exportDefault" />
                 <span class="checkmark"></span>
-                <span>Экспортировать и оригинал (_default)</span>
+                <span>Also export the original (_default)</span>
               </label>
             </div>
 
             <div class="exportFooter">
               <span class="status" id="exportStatus"></span>
-              <button class="button primary" id="exportBtn" disabled>Экспорт</button>
+              <button class="button primary" id="exportBtn" disabled>Export</button>
             </div>
           </div>
         </div>
 
         <div class="rightColumn">
           <div class="gradientListHead">
-            <p class="panelLabel">Градиенты</p>
+            <p class="panelLabel">Gradients</p>
             <span class="count" id="gradientCount"></span>
           </div>
           <div class="searchRow">
-            <input type="text" class="textInput" id="gradientSearch" placeholder="Поиск по названию…" />
-            <button class="button compact" id="newGradientBtn">+ Новый</button>
+            <input type="text" class="textInput" id="gradientSearch" placeholder="Search by name…" />
+            <button class="button compact" id="newGradientBtn">+ New</button>
           </div>
           <div class="gradientList scrollY" id="gradientList"></div>
         </div>

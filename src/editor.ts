@@ -14,7 +14,7 @@ const BASE_PALETTE: RGB[] = [
 
 function defaultDef(): GradientDef {
   return {
-    name: "Новый градиент",
+    name: "New gradient",
     stops: [
       { pos: 0, color: [0, 0, 0], midpoint: 0.5 },
       { pos: 1, color: [255, 255, 255], midpoint: 0.5 },
@@ -67,7 +67,7 @@ function build() {
   nameInput.type = "text";
   const closeBtn = el("button", "iconButton");
   closeBtn.textContent = "✕";
-  closeBtn.title = "Закрыть без сохранения";
+  closeBtn.title = "Close without saving";
   closeBtn.addEventListener("click", () => close());
   nameRow.append(nameInput);
   header.append(nameRow, closeBtn);
@@ -91,7 +91,7 @@ function build() {
 
   const hint = el("p", "editorHint");
   hint.textContent =
-    "Клик по полосе - новая цветовая точка, клик по узкой полосе выше - точка прозрачности. Правая кнопка мыши на точке - удалить.";
+    "Click the bar for a new color stop, click the narrow lane above for an opacity stop. Right-click a stop to delete it.";
 
   stopFields = el("div");
   stopFields.style.display = "flex";
@@ -157,10 +157,10 @@ function build() {
   opacityFields.style.flexDirection = "column";
   opacityFields.style.gap = "8px";
   const opacityLabel = el("p", "panelLabel");
-  opacityLabel.textContent = "Прозрачность точки";
+  opacityLabel.textContent = "Stop opacity";
   const opacityRow = el("div", "stopFieldsRow");
   const opacitySliderLabel = el("span", "label");
-  opacitySliderLabel.textContent = "Opacity";
+  opacitySliderLabel.textContent = "Value";
   const opacitySlider = el("input", "slider");
   opacitySlider.type = "range";
   opacitySlider.min = "0";
@@ -178,13 +178,13 @@ function build() {
   const footer = el("div", "editorFooter");
   statusEl = el("span", "status");
   deleteStopBtn = el("button", "button compact danger");
-  deleteStopBtn.textContent = "Удалить точку";
+  deleteStopBtn.textContent = "Delete stop";
   deleteStopBtn.addEventListener("click", () => deleteSelected());
   const cancelBtn = el("button", "button");
-  cancelBtn.textContent = "Отмена";
+  cancelBtn.textContent = "Cancel";
   cancelBtn.addEventListener("click", () => close());
   saveBtn = el("button", "button primary");
-  saveBtn.textContent = "Сохранить";
+  saveBtn.textContent = "Save";
   saveBtn.addEventListener("click", () => void save());
   footer.append(statusEl, deleteStopBtn, cancelBtn, saveBtn);
 
@@ -195,7 +195,13 @@ function build() {
 
 // ---------------------------------------------------------------- rendering
 
-function renderBar() {
+// Just the pixel data - safe to call on every pointermove during a drag. The
+// handle-rendering functions below rebuild their DOM subtree from scratch
+// (innerHTML = ""), which destroys whichever handle currently holds pointer
+// capture; calling them mid-drag silently kills the drag after the first
+// move event. Only renderBar() (the full rebuild) may call them - drag
+// handlers update their own handle's position directly instead.
+function renderBarPixels() {
   const w = barCanvas.clientWidth || 400;
   const h = barCanvas.clientHeight || 36;
   barCanvas.width = w;
@@ -213,7 +219,10 @@ function renderBar() {
   }
   ctx.putImageData(image, 0, 0);
   ctx.drawImage(barCanvas, 0, 0, w, 1, 0, 0, w, h);
+}
 
+function renderBar() {
+  renderBarPixels();
   renderOpacityLane();
   renderStopHandles();
   renderMidpointHandles();
@@ -290,7 +299,7 @@ function renderStopFields() {
   if (selectedStop !== null && def.stops[selectedStop]) {
     const row = el("div", "stopFieldsRow");
     const label = el("span", "label");
-    label.textContent = `Точка ${selectedStop + 1}/${def.stops.length}`;
+    label.textContent = `Stop ${selectedStop + 1}/${def.stops.length}`;
     const posInput = el("input", "numberInput");
     posInput.type = "number";
     posInput.min = "0";
@@ -387,17 +396,28 @@ function clampToBar(clientX: number, track: HTMLElement): number {
 
 function startDragStop(e: PointerEvent, index: number) {
   e.preventDefault();
+  // Capture first: a full renderBar() (as this used to do before capturing)
+  // rebuilds stopLayer from scratch, detaching `target` from the document -
+  // per the Pointer Events spec that implicitly releases any capture already
+  // taken on it, so the drag would never actually start. Highlight the
+  // selection by toggling classes on the existing handles instead of
+  // rebuilding them.
+  const target = e.currentTarget as HTMLElement;
+  target.setPointerCapture(e.pointerId);
+  stopLayer.querySelector(".stopHandle.active")?.classList.remove("active");
+  opacityLane.querySelector(".opacityHandle.active")?.classList.remove("active");
+  target.classList.add("active");
+
   selectedStop = index;
   selectedOpacity = null;
   renderStopFields();
   syncColorPickerFromSelection();
-  renderBar();
-  const target = e.currentTarget as HTMLElement;
-  target.setPointerCapture(e.pointerId);
 
   const onMove = (ev: PointerEvent) => {
     def.stops[index].pos = clampToBar(ev.clientX, bar);
-    renderBar();
+    target.style.left = `${def.stops[index].pos * 100}%`;
+    renderBarPixels();
+    renderMidpointHandles();
     renderStopFields();
   };
   const onUp = () => {
@@ -419,7 +439,8 @@ function startDragMidpoint(e: PointerEvent, a: ColorStop, b: ColorStop) {
     const span = b.pos - a.pos;
     const local = span <= 0 ? 0.5 : (t - a.pos) / span;
     a.midpoint = Math.min(0.95, Math.max(0.05, local));
-    renderBar();
+    target.style.left = `${(a.pos + (b.pos - a.pos) * a.midpoint) * 100}%`;
+    renderBarPixels();
   };
   const onUp = () => {
     target.releasePointerCapture(e.pointerId);
@@ -432,17 +453,23 @@ function startDragMidpoint(e: PointerEvent, a: ColorStop, b: ColorStop) {
 
 function startDragOpacity(e: PointerEvent, index: number) {
   e.preventDefault();
+  // Same ordering fix as startDragStop: capture before any DOM rebuild.
+  const target = e.currentTarget as HTMLElement;
+  target.setPointerCapture(e.pointerId);
+  opacityLane.querySelectorAll(".opacityHandle.active").forEach((n) => n.classList.remove("active"));
+  stopLayer.querySelector(".stopHandle.active")?.classList.remove("active");
+  target.classList.add("active");
+
   selectedOpacity = index;
   selectedStop = null;
   renderStopFields();
   syncColorPickerFromSelection();
-  renderBar();
-  const target = e.currentTarget as HTMLElement;
-  target.setPointerCapture(e.pointerId);
 
   const onMove = (ev: PointerEvent) => {
     def.opacityStops[index].pos = clampToBar(ev.clientX, opacityLane);
-    renderBar();
+    target.style.left = `${def.opacityStops[index].pos * 100}%`;
+    renderBarPixels();
+    renderOpacityLane();
   };
   const onUp = () => {
     target.releasePointerCapture(e.pointerId);
@@ -571,7 +598,12 @@ function wireInteractions() {
 
 // ---------------------------------------------------------------- lifecycle
 
-export async function openEditor(id: string | null, onSavedCallback: () => void) {
+// isPreset: editing a built-in .grd rather than a custom gradient. Saving
+// always writes a fresh copy in that case (the backend never overwrites a
+// .grd), so the name field is pre-filled with a "(copy)" suffix - otherwise
+// the new entry would sit in the list under the exact same name as the
+// original with nothing but the edit/delete icons to tell them apart.
+export async function openEditor(id: string | null, onSavedCallback: () => void, isPreset = false) {
   if (!overlay) build();
   editingId = id;
   onSaved = onSavedCallback;
@@ -580,6 +612,7 @@ export async function openEditor(id: string | null, onSavedCallback: () => void)
   if (id) {
     try {
       def = await getGradient(id);
+      if (isPreset) def = { ...def, name: `${def.name} (copy)` };
     } catch (e) {
       def = defaultDef();
       statusEl.textContent = String(e);
@@ -605,9 +638,9 @@ function close() {
 }
 
 async function save() {
-  def.name = nameInput.value.trim() || "Без названия";
+  def.name = nameInput.value.trim() || "Untitled";
   if (def.stops.length < 2) {
-    statusEl.textContent = "Нужно хотя бы 2 цветовые точки";
+    statusEl.textContent = "Need at least 2 color stops";
     return;
   }
   saveBtn.disabled = true;

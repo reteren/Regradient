@@ -185,7 +185,7 @@ fn find_gradient_descriptors(v: &Value, out: &mut Vec<Descriptor>) {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct GrdColorStop {
     /// 0.0-1.0 position along the gradient.
     pub pos: f64,
@@ -195,7 +195,7 @@ pub struct GrdColorStop {
     pub midpoint: f64,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct GrdOpacityStop {
     pub pos: f64,
     /// 0.0-1.0
@@ -240,6 +240,29 @@ fn extract_rgb(v: Option<&Value>) -> Result<[u8; 3], String> {
     Ok([clamp(r), clamp(g), clamp(b)])
 }
 
+/// A couple of the sample presets carry a run of stray stops all sitting at
+/// the exact same position (ahead of the real ramp) - almost certainly
+/// leftover swatch data from whatever exported them, not anything the
+/// gradient was authored with. `color_at`'s `t <= stops[0].pos` guard picks
+/// the *first* stop for any t at or before the minimum position, so with
+/// duplicates present that guard silently surfaces the first of the run
+/// instead of the one that actually leads into the rest of the ramp -
+/// visible as a single stray-colored pixel at the very edge of the gradient.
+/// Collapsing same-position runs down to their last entry (the one adjacent
+/// to whatever comes next) fixes that without guessing at real intent.
+fn dedup_by_position<T: Copy>(mut items: Vec<T>, pos: impl Fn(&T) -> f64) -> Vec<T> {
+    let mut out: Vec<T> = Vec::with_capacity(items.len());
+    for item in items.drain(..) {
+        if let Some(last) = out.last() {
+            if (pos(last) - pos(&item)).abs() < 1e-9 {
+                out.pop();
+            }
+        }
+        out.push(item);
+    }
+    out
+}
+
 fn extract_gradient(d: &Descriptor) -> Result<ParsedGrd, String> {
     let name = match d.get("Nm  ") {
         Some(Value::Text(s)) => s.clone(),
@@ -259,6 +282,7 @@ fn extract_gradient(d: &Descriptor) -> Result<ParsedGrd, String> {
         }
     }
     stops.sort_by(|a, b| a.pos.partial_cmp(&b.pos).unwrap());
+    let stops = dedup_by_position(stops, |s| s.pos);
 
     let mut opacity_stops = Vec::new();
     if let Some(Value::List(items)) = d.get("Trns") {
@@ -272,6 +296,7 @@ fn extract_gradient(d: &Descriptor) -> Result<ParsedGrd, String> {
         }
     }
     opacity_stops.sort_by(|a, b| a.pos.partial_cmp(&b.pos).unwrap());
+    let opacity_stops = dedup_by_position(opacity_stops, |s| s.pos);
 
     Ok(ParsedGrd { name, stops, opacity_stops, noise })
 }
@@ -327,5 +352,27 @@ mod tests {
             checked += 1;
         }
         assert_eq!(checked, 8, "expected 8 sample .grd files");
+    }
+
+    /// diamond.grd and void.grd each embed a run of ~14 stray same-position
+    /// stops ahead of their real ramp (see `dedup_by_position`'s doc comment).
+    /// Without dedup, `color_at`'s `t <= stops[0].pos` guard would surface the
+    /// first of that run - a jarring, unrelated color - for any pixel at or
+    /// before the gradient's start.
+    #[test]
+    fn same_position_stops_collapse_to_the_last_one() {
+        let dir = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../gradients"));
+        for name in ["diamond", "void"] {
+            let bytes = std::fs::read(dir.join(format!("{name}.grd"))).unwrap();
+            let gradients = parse_grd(&bytes).unwrap();
+            let g = gradients.iter().find(|g| !g.noise && g.stops.len() >= 2).unwrap();
+            let zero_stops: Vec<_> = g.stops.iter().filter(|s| s.pos.abs() < 1e-9).collect();
+            assert_eq!(
+                zero_stops.len(),
+                1,
+                "{name}.grd: expected exactly one stop at position 0 after dedup, found {}",
+                zero_stops.len()
+            );
+        }
     }
 }

@@ -1,5 +1,20 @@
+# Node
 node_modules/
 dist/
+
+# Rust / Tauri
 src-tauri/target/
 src-tauri/gen/
 *.log
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local project data
+.claude/
