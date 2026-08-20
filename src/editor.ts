@@ -4,7 +4,24 @@
 // and reused for every open() call.
 
 import { ColorStop, GradientDef, OpacityStop, getGradient, saveGradient } from "./api";
-import { RGB, clamp01, colorAt, hexToRgb, hsvToRgb, opacityAt, rgbToHex, rgbToHsv } from "./colormath";
+import {
+  RGB,
+  applyLumaRemap,
+  buildColorLut,
+  buildOpacityLut,
+  clamp01,
+  colorAt,
+  hexToRgb,
+  hsvToRgb,
+  opacityAt,
+  rgbToHex,
+  rgbToHsv,
+} from "./colormath";
+import { getPreviewSubject } from "./previewSubject";
+
+// Shown when no photo is loaded in the main app yet, so the editor's live
+// preview always has something to render the gradient onto.
+const FALLBACK_PREVIEW_URL = "/ckud.png";
 
 const BASE_PALETTE: RGB[] = [
   [0, 0, 0], [26, 26, 26], [64, 64, 64], [128, 128, 128], [191, 191, 191], [255, 255, 255],
@@ -32,6 +49,7 @@ let stopLayer: HTMLDivElement;
 let midpointLayer: HTMLDivElement;
 let opacityLayer: HTMLDivElement;
 let stopFields: HTMLDivElement;
+let previewCanvas: HTMLCanvasElement;
 let colorPicker: HTMLDivElement;
 let opacityFields: HTMLDivElement;
 let svCanvas: HTMLCanvasElement;
@@ -98,7 +116,11 @@ function build() {
   stopFields.style.flexDirection = "column";
   stopFields.style.gap = "8px";
 
-  left.append(barWrap, hint, stopFields);
+  const previewWrap = el("div", "editorPreviewWrap");
+  previewCanvas = el("canvas");
+  previewWrap.appendChild(previewCanvas);
+
+  left.append(barWrap, hint, stopFields, previewWrap);
 
   // ---- color picker ----
   colorPicker = el("div", "colorPicker");
@@ -219,6 +241,7 @@ function renderBarPixels() {
   }
   ctx.putImageData(image, 0, 0);
   ctx.drawImage(barCanvas, 0, 0, w, 1, 0, 0, w, h);
+  void renderPreview();
 }
 
 function renderBar() {
@@ -227,6 +250,44 @@ function renderBar() {
   renderStopHandles();
   renderMidpointHandles();
   renderOpacityHandles();
+}
+
+// Cached by URL so switching gradients (or the main app's active photo)
+// mid-session doesn't redecode the same image every frame of a drag.
+const previewImages = new Map<string, HTMLImageElement>();
+
+function loadPreviewImage(url: string): Promise<HTMLImageElement> {
+  const cached = previewImages.get(url);
+  if (cached) return Promise.resolve(cached);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      previewImages.set(url, img);
+      resolve(img);
+    };
+    img.src = url;
+  });
+}
+
+// Renders the gradient currently being edited (unsaved - built straight from
+// `def`, not a round trip through the backend) onto whatever photo is active
+// in the main app, or the bundled duck placeholder if none is loaded yet.
+let previewToken = 0;
+async function renderPreview() {
+  const token = ++previewToken;
+  const url = getPreviewSubject() ?? FALLBACK_PREVIEW_URL;
+  const img = await loadPreviewImage(url);
+  if (token !== previewToken) return;
+
+  previewCanvas.width = img.naturalWidth;
+  previewCanvas.height = img.naturalHeight;
+  const ctx = previewCanvas.getContext("2d")!;
+  ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+  ctx.drawImage(img, 0, 0);
+
+  const frame = ctx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+  applyLumaRemap(frame, buildColorLut(def.stops), buildOpacityLut(def.opacityStops));
+  ctx.putImageData(frame, 0, 0);
 }
 
 function renderOpacityLane() {

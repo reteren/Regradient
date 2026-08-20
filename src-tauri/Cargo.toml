@@ -1,6 +1,6 @@
 [package]
 name = "regradient"
-version = "0.1.0"
+version = "0.2.0"
 description = "Regradient - batch Photoshop-style gradient maps"
 authors = ["Regradient"]
 edition = "2021"

@@ -13,7 +13,7 @@ use tauri::{Manager, State};
 use export::{ExportRequest, ExportResult};
 use gradient::{GradientDef, GradientMeta};
 use imaging::ImageInfo;
-use state::AppState;
+use state::{AppState, Photo};
 
 #[tauri::command]
 fn list_gradients(state: State<AppState>) -> Vec<GradientMeta> {
@@ -35,11 +35,16 @@ fn delete_gradient(state: State<AppState>, id: String) -> Result<(), String> {
     gradient::delete(&state.gradients_dir(), &id)
 }
 
+/// Appends the photo to the loaded set (drag&drop / the file picker can add
+/// several) and returns its info; it does not replace whatever was already
+/// loaded. Which photo is "active" for the live preview is a frontend-only
+/// concept - the backend just keeps the full list around for export.
 #[tauri::command]
 fn load_image_path(state: State<AppState>, path: String) -> Result<ImageInfo, String> {
     let loaded = imaging::load_from_path(std::path::Path::new(&path))?;
-    let info = imaging::info_for(&loaded);
-    *state.image.lock().unwrap() = Some(loaded);
+    let id = state.next_id();
+    let info = imaging::info_for(&id, &loaded);
+    state.images.lock().unwrap().push(Photo { id, image: loaded });
     Ok(info)
 }
 
@@ -50,16 +55,47 @@ fn load_image_path(state: State<AppState>, path: String) -> Result<ImageInfo, St
 #[tauri::command]
 fn load_image_clipboard(state: State<AppState>) -> Result<ImageInfo, String> {
     let loaded = imaging::read_clipboard_image()?;
-    let info = imaging::info_for(&loaded);
-    *state.image.lock().unwrap() = Some(loaded);
+    let id = state.next_id();
+    let info = imaging::info_for(&id, &loaded);
+    state.images.lock().unwrap().push(Photo { id, image: loaded });
     Ok(info)
 }
 
 #[tauri::command]
+fn remove_image(state: State<AppState>, id: String) -> Result<(), String> {
+    let mut images = state.images.lock().unwrap();
+    let before = images.len();
+    images.retain(|p| p.id != id);
+    if images.len() == before {
+        return Err(format!("no loaded photo with id '{id}'"));
+    }
+    Ok(())
+}
+
+#[tauri::command]
 fn run_export(state: State<AppState>, request: ExportRequest) -> Result<ExportResult, String> {
-    let guard = state.image.lock().unwrap();
-    let image = guard.as_ref().ok_or("no image loaded")?;
-    Ok(export::run(&state.gradients_dir(), image, &request))
+    let guard = state.images.lock().unwrap();
+    if guard.is_empty() {
+        return Err("no photo loaded".to_string());
+    }
+    let images: Vec<&imaging::LoadedImage> = guard.iter().map(|p| &p.image).collect();
+    Ok(export::run(&state.gradients_dir(), &images, &request))
+}
+
+/// The 256-entry color/opacity LUT for a gradient, used by the frontend to
+/// render the live gradient-map preview directly on a canvas (no image round
+/// trip to the backend needed every time a checkbox toggles).
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GradientLut {
+    color_lut: Vec<[u8; 3]>,
+    opacity_lut: Vec<f64>,
+}
+
+#[tauri::command]
+fn get_gradient_lut(state: State<AppState>, id: String) -> Result<GradientLut, String> {
+    let def = gradient::get_def(&state.gradients_dir(), &id)?;
+    Ok(GradientLut { color_lut: gradient::build_lut(&def).to_vec(), opacity_lut: gradient::build_opacity_lut(&def).to_vec() })
 }
 
 // ---------------------------------------------------------------- settings
@@ -151,10 +187,12 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_gradients,
             get_gradient,
+            get_gradient_lut,
             save_gradient,
             delete_gradient,
             load_image_path,
             load_image_clipboard,
+            remove_image,
             run_export,
             load_settings,
             save_settings,

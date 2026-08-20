@@ -61,7 +61,9 @@ fn effective_base(selected: &Path, wrap: bool) -> PathBuf {
     }
 }
 
-pub fn run(gradients_dir: &Path, image: &LoadedImage, req: &ExportRequest) -> ExportResult {
+/// Runs every selected gradient across every loaded photo (one output file
+/// per photo per gradient), plus one `_default` copy per photo if requested.
+pub fn run(gradients_dir: &Path, images: &[&LoadedImage], req: &ExportRequest) -> ExportResult {
     let mut result = ExportResult::default();
     let base = effective_base(Path::new(&req.output_dir), req.wrap_in_gradiented_images);
 
@@ -75,29 +77,33 @@ pub fn run(gradients_dir: &Path, image: &LoadedImage, req: &ExportRequest) -> Ex
         };
         let lut = gradient::build_lut(&def);
         let opacity_lut = gradient::build_opacity_lut(&def);
-        let mapped = imaging::apply_gradient_map(&image.decoded, &lut, &opacity_lut);
-
         let out_dir = if req.per_gradient_folders {
             base.join(sanitize_component(&def.name))
         } else {
             base.clone()
         };
-        let filename = format!("{}_{}.{}", image.stem, sanitize_component(&def.name), image.ext);
-        let path = out_dir.join(filename);
 
-        match imaging::save_image(&mapped, &path, image.ext) {
-            Ok(()) => result.written.push(path.to_string_lossy().to_string()),
-            Err(e) => result.errors.push(e),
+        for image in images {
+            let mapped = imaging::apply_gradient_map(&image.decoded, &lut, &opacity_lut);
+            let filename = format!("{}_{}.{}", image.stem, sanitize_component(&def.name), image.ext);
+            let path = out_dir.join(filename);
+
+            match imaging::save_image(&mapped, &path, image.ext) {
+                Ok(()) => result.written.push(path.to_string_lossy().to_string()),
+                Err(e) => result.errors.push(e),
+            }
         }
     }
 
     if req.export_default {
         let out_dir = if req.per_gradient_folders { base.join(DEFAULT_FOLDER_NAME) } else { base.clone() };
-        let filename = format!("{}_default.{}", image.stem, image.ext);
-        let path = out_dir.join(filename);
-        match imaging::save_image(&image.decoded, &path, image.ext) {
-            Ok(()) => result.written.push(path.to_string_lossy().to_string()),
-            Err(e) => result.errors.push(e),
+        for image in images {
+            let filename = format!("{}_default.{}", image.stem, image.ext);
+            let path = out_dir.join(filename);
+            match imaging::save_image(&image.decoded, &path, image.ext) {
+                Ok(()) => result.written.push(path.to_string_lossy().to_string()),
+                Err(e) => result.errors.push(e),
+            }
         }
     }
 
@@ -132,7 +138,7 @@ mod tests {
             per_gradient_folders: false,
             export_default: true,
         };
-        let result = run(&gradients_dir(), &tiny_image(), &req);
+        let result = run(&gradients_dir(), &[&tiny_image()], &req);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
         assert!(tmp.join("photo_lava.png").is_file());
         assert!(tmp.join("photo_default.png").is_file());
@@ -152,7 +158,7 @@ mod tests {
             per_gradient_folders: true,
             export_default: true,
         };
-        let result = run(&gradients_dir(), &tiny_image(), &req);
+        let result = run(&gradients_dir(), &[&tiny_image()], &req);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
 
         let wrapped = tmp.join("Gradiented Images");
@@ -177,7 +183,7 @@ mod tests {
             per_gradient_folders: false,
             export_default: false,
         };
-        let result = run(&gradients_dir(), &tiny_image(), &req);
+        let result = run(&gradients_dir(), &[&tiny_image()], &req);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
         assert!(target.join("photo_lava.png").is_file());
         assert!(!target.join("Gradiented Images").exists());
@@ -199,10 +205,37 @@ mod tests {
             per_gradient_folders: true,
             export_default: false,
         };
-        let result = run(&gradients_dir(), &tiny_image(), &req);
+        let result = run(&gradients_dir(), &[&tiny_image()], &req);
         assert!(result.errors.is_empty(), "{:?}", result.errors);
         assert!(tmp.join("lava").join("photo_lava.png").is_file());
         assert!(tmp.join("lava").join("keep.txt").is_file());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn every_loaded_photo_is_exported_for_every_selected_gradient() {
+        let tmp = std::env::temp_dir().join("regradient-export-test-multi-photo");
+        let _ = std::fs::remove_dir_all(&tmp);
+
+        let mut second = tiny_image();
+        second.stem = "other".to_string();
+
+        let req = ExportRequest {
+            output_dir: tmp.to_string_lossy().to_string(),
+            gradient_ids: vec!["lava".to_string(), "rock".to_string()],
+            wrap_in_gradiented_images: false,
+            per_gradient_folders: false,
+            export_default: true,
+        };
+        let result = run(&gradients_dir(), &[&tiny_image(), &second], &req);
+        assert!(result.errors.is_empty(), "{:?}", result.errors);
+        for stem in ["photo", "other"] {
+            assert!(tmp.join(format!("{stem}_lava.png")).is_file());
+            assert!(tmp.join(format!("{stem}_rock.png")).is_file());
+            assert!(tmp.join(format!("{stem}_default.png")).is_file());
+        }
+        assert_eq!(result.written.len(), 6);
 
         let _ = std::fs::remove_dir_all(&tmp);
     }

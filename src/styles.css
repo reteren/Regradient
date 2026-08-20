@@ -524,6 +524,7 @@ hr {
 .mainGrid {
   flex: 1;
   min-height: 0;
+  position: relative;
   display: flex;
   gap: 12px;
 }
@@ -534,6 +535,104 @@ hr {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.workArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 10px;
+}
+
+/* ---- Photo strip (loaded photos, like a layer stack) ---- */
+
+.photoStripCol {
+  flex: none;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.photoStripHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  flex: none;
+}
+
+.photoStripHead .panelLabel {
+  font-size: 9px;
+}
+
+.photoStripHead .button {
+  min-width: 0;
+  width: 22px;
+  padding: 0;
+}
+
+.photoStrip {
+  flex: 1;
+  min-height: 0;
+  background-color: var(--input-bg);
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.photoThumb {
+  position: relative;
+  height: 48px;
+  flex: none;
+  cursor: pointer;
+  background-color: #999;
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+}
+
+.photoThumb.active {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.photoThumbRemove {
+  display: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+  background: rgb(0 0 0 / 0.6);
+  color: var(--text);
+  border: none;
+  cursor: pointer;
+}
+
+.photoThumb:hover .photoThumbRemove {
+  display: flex;
+}
+
+.photoMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* 2.5x narrower than the original flex:1 share of the row. */
@@ -599,10 +698,34 @@ hr {
   font-size: 10px;
 }
 
-.dropzone img.previewImg {
-  max-width: 100%;
-  max-height: 100%;
+.previewStage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.previewStage.grabbing {
+  cursor: grabbing;
+}
+
+/* Fills the whole preview area (letterboxed to the photo's own aspect
+   ratio) regardless of the source resolution - a tiny source image no
+   longer renders pixel-for-pixel tiny in a big preview box. */
+.previewStage canvas {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  display: block;
+  will-change: transform;
+  /* Otherwise the browser bilinear-smooths every upscale - fine for a photo,
+     but it turns pixel art into a blurry mess even at 100% zoom, since a
+     small source image is always being displayed larger than its own
+     resolution here. */
+  image-rendering: pixelated;
 }
 
 .dropzone .previewMeta {
@@ -772,7 +895,9 @@ hr {
 .editorOverlay {
   display: none;
   position: absolute;
-  inset: 14px;
+  /* Relative to .mainGrid, not the whole window - the titlebar sits above
+     mainGrid and stays clickable (window drag) while the editor is open. */
+  inset: 0;
   z-index: 50;
   background-color: rgba(30, 30, 30, 0.92);
   backdrop-filter: blur(6px);
@@ -796,9 +921,36 @@ hr {
 .editorLeft {
   flex: 1.3;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Live preview of the gradient being edited, on the main app's active photo
+   (or the duck placeholder when nothing is loaded yet) - fills whatever
+   space is left below the bar/hint/stop fields. */
+.editorPreviewWrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background-color: var(--input-bg);
+  border-left: 1px solid var(--input-dark);
+  border-top: 1px solid var(--input-dark);
+  border-right: 1px solid var(--input-light);
+  border-bottom: 1px solid var(--input-light);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editorPreviewWrap canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  image-rendering: pixelated;
 }
 
 .editorRight {

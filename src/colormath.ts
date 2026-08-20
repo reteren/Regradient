@@ -115,3 +115,34 @@ export function opacityAt(stops: (StopLike & { opacity: number })[], t: number):
   }
   return last.opacity;
 }
+
+/** Samples colorAt/opacityAt at the same 256 points as the backend's build_lut. */
+export function buildColorLut(stops: (StopLike & { color: RGB })[]): RGB[] {
+  const lut: RGB[] = new Array(256);
+  for (let i = 0; i < 256; i++) lut[i] = colorAt(stops, i / 255);
+  return lut;
+}
+
+export function buildOpacityLut(stops: (StopLike & { opacity: number })[]): number[] {
+  const lut: number[] = new Array(256);
+  for (let i = 0; i < 256; i++) lut[i] = opacityAt(stops, i / 255);
+  return lut;
+}
+
+/** Mirrors the backend's apply_gradient_map: Photoshop-weighted luminance
+ *  indexes the LUT, opacity LUT blends the result back over the source
+ *  pixel. Mutates `imageData` in place. */
+export function applyLumaRemap(imageData: ImageData, colorLut: RGB[], opacityLut: number[]) {
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i];
+    const g = d[i + 1];
+    const b = d[i + 2];
+    const luma = Math.min(255, Math.max(0, Math.round(0.299 * r + 0.587 * g + 0.114 * b)));
+    const c = colorLut[luma];
+    const op = opacityLut[luma];
+    d[i] = Math.round(r + (c[0] - r) * op);
+    d[i + 1] = Math.round(g + (c[1] - g) * op);
+    d[i + 2] = Math.round(b + (c[2] - b) * op);
+  }
+}

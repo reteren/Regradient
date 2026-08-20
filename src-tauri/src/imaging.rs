@@ -85,6 +85,7 @@ fn flatten_to_rgb(img: &image::DynamicImage) -> image::RgbImage {
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageInfo {
+    pub id: String,
     pub stem: String,
     pub width: u32,
     pub height: u32,
@@ -92,7 +93,7 @@ pub struct ImageInfo {
     pub preview: String,
 }
 
-pub fn info_for(image: &LoadedImage) -> ImageInfo {
+pub fn info_for(id: &str, image: &LoadedImage) -> ImageInfo {
     use base64::Engine;
 
     let (w, h) = (image.decoded.width(), image.decoded.height());
@@ -107,7 +108,7 @@ pub fn info_for(image: &LoadedImage) -> ImageInfo {
         .expect("encoding an in-memory PNG cannot fail");
     let preview = format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(buf.into_inner()));
 
-    ImageInfo { stem: image.stem.clone(), width: w, height: h, preview }
+    ImageInfo { id: id.to_string(), stem: image.stem.clone(), width: w, height: h, preview }
 }
 
 pub fn save_image(img: &image::DynamicImage, path: &Path, ext: &str) -> Result<(), String> {

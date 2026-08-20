@@ -22,21 +22,40 @@
 
       <div class="mainGrid">
         <div class="leftColumn">
-          <p class="panelLabel">Photo</p>
-          <div class="dropzone" id="dropzone" tabindex="0">
-            <div class="dropzoneEmpty" id="dropzoneEmpty">
-              <p>Drop a photo here</p>
-              <p class="hint">
-                or press <span class="hintKey">Ctrl</span>+<span class="hintKey">V</span> to paste from the
-                clipboard, or pick a file from disk
-              </p>
-              <button class="button compact" id="browseImageBtn">Choose file…</button>
+          <div class="workArea">
+            <div class="photoStripCol">
+              <div class="photoStripHead">
+                <p class="panelLabel">Photos</p>
+                <button class="button compact" id="addPhotoBtn" title="Add photos">+</button>
+              </div>
+              <div class="photoStrip scrollY" id="photoStrip"></div>
             </div>
-            <img class="previewImg" id="previewImg" alt="" style="display: none" />
-            <span class="previewMeta" id="previewMeta" style="display: none"></span>
-            <button class="button compact clearImage" id="clearImageBtn" style="display: none" title="Remove photo">
-              ✕
-            </button>
+
+            <div class="photoMain">
+              <p class="panelLabel">Photo</p>
+              <div class="dropzone" id="dropzone" tabindex="0">
+                <div class="dropzoneEmpty" id="dropzoneEmpty">
+                  <p>Drop photos here</p>
+                  <p class="hint">
+                    or press <span class="hintKey">Ctrl</span>+<span class="hintKey">V</span> to paste from the
+                    clipboard, or pick files from disk
+                  </p>
+                  <button class="button compact" id="browseImageBtn">Choose files…</button>
+                </div>
+                <div class="previewStage" id="previewStage" style="display: none">
+                  <canvas id="previewCanvas"></canvas>
+                </div>
+                <span class="previewMeta" id="previewMeta" style="display: none"></span>
+                <button
+                  class="button compact clearImage"
+                  id="clearImageBtn"
+                  style="display: none"
+                  title="Remove this photo"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="exportBar">
@@ -82,10 +101,11 @@
           </div>
           <div class="gradientList scrollY" id="gradientList"></div>
         </div>
-      </div>
 
-      <!-- Gradient editor, filled in by editor.ts -->
-      <div class="editorOverlay" id="editorOverlay"></div>
+        <!-- Gradient editor, filled in by editor.ts. Scoped to mainGrid (not
+             appShell) so it can never cover the titlebar's drag region. -->
+        <div class="editorOverlay" id="editorOverlay"></div>
+      </div>
     </section>
 
     <script type="module" src="/src/main.ts"></script>
